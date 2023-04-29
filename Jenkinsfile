@@ -30,7 +30,7 @@ pipeline {
         stage('Deployment') {
             steps {
                 sshagent(['Kube_Master']) {
-                    sh 'scp -o StrictHostKeyChecking=no maven-web-app-deploy.yml ubuntu@172.31.3.42:/home/ubuntu/'
+                    sh 'scp -o StrictHostKeyChecking=no deployment.yaml ubuntu@172.31.3.42:/home/ubuntu/'
                     script {
                         try{
                             sh 'ssh ubuntu@172.31.3.42 kubectl apply -f .'
