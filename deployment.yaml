@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-check-service
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+  selector:
+    app: maven-web-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maven-web-app-deployment
+  labels:
+    app: maven-web-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maven-web-app
+  template:
+    metadata:
+      labels:
+        app: maven-web-app
+    spec:
+      containers:
+      - name: maven-web-app-container
+        image: 723185050974.dkr.ecr.ap-south-1.amazonaws.com/sping-pet-clinic-repo
+        imagePullPolicy: Always
+        ports:
+          - name: web
+            containerPort: 80
+      imagePullSecrets:
+          - name: regcred
