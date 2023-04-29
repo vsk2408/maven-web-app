@@ -1,54 +1,45 @@
-node{
-    
-    stage('Clone repo'){
-        git credentialsId: 'GIT-Credentials', url: 'https://github.com/ashokitschool/maven-web-app.git'
-    }
-    
-    stage('Maven Build'){
-        def mavenHome = tool name: "Maven-3.8.6", type: "maven"
-        def mavenCMD = "${mavenHome}/bin/mvn"
-        sh "${mavenCMD} clean package"
-    }
-    
-    stage('SonarQube analysis') {       
-        withSonarQubeEnv('Sonar-Server-7.8') {
-       	sh "mvn sonar:sonar"    	
-    }
-        
-    stage('upload war to nexus'){
-	steps{
-		nexusArtifactUploader artifacts: [	
-			[
-				artifactId: '01-maven-web-app',
-				classifier: '',
-				file: 'target/01-maven-web-app.war',
-				type: war		
-			]	
-		],
-		credentialsId: 'nexus3',
-		groupId: 'in.ashokit',
-		nexusUrl: '',
-		protocol: 'http',
-		repository: 'ashokit-release'
-		version: '1.0.0'
-	}
-}
-    
-    stage('Build Image'){
-        sh 'docker build -t ashokit/mavenwebapp .'
-    }
-    
-    stage('Push Image'){
-        withCredentials([string(credentialsId: 'DOCKER-CREDENTIALS', variable: 'DOCKER_CREDENTIALS')]) {
-            sh 'docker login -u ashokit -p ${DOCKER_CREDENTIALS}'
+pipeline {
+    agent any
+    stages {
+        stage('git_clone'){
+            steps{
+                git branch: 'master', url: 'https://github.com/vsk2408/maven-web-app.git'
+            }
         }
-        sh 'docker push ashokit/mavenwebapp'
+        stage('build'){
+           steps{
+               sh 'mvn clean install -X -U'
+           }
+       }
+       stage('docker_build'){
+          steps{
+              sh 'docker build -t maven-web-app -f Dockerfile .'
+              //sh 'docker save -o spring-boot-app.tar spring-boot-app:latest'
+              //sh 'chown jenkins:jenkins spring-boot-app.tar'
+          }
+       }
+       stage('Pushing Image') {
+            steps {
+                script {
+                    sh '''aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 723185050974.dkr.ecr.ap-south-1.amazonaws.com
+                    docker tag maven-web-app:latest 723185050974.dkr.ecr.ap-south-1.amazonaws.com/sping-pet-clinic-repo:latest
+                    docker push 723185050974.dkr.ecr.ap-south-1.amazonaws.com/sping-pet-clinic-repo:latest'''
+                }
+            }
+       }
+        stage('Deployment') {
+            steps {
+                sshagent(['Kube_Master']) {
+                    sh 'scp -o StrictHostKeyChecking=no deployment.yaml ubuntu@172.31.3.42:/home/ubuntu/'
+                    script {
+                        try{
+                            sh 'ssh ubuntu@172.31.3.42 kubectl apply -f .'
+                        } catch(error){
+                            sh 'ssh ubuntu@172.31.3.42 kubectl create -f .'
+                        }
+                    }
+                }
+            }
+        }
     }
-    
-    stage('Deploy App'){
-        kubernetesDeploy(
-            configs: 'maven-web-app-deploy.yml',
-            kubeconfigId: 'Kube-Config'
-        )
-    }    
-}
+}    
