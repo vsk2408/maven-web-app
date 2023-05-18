@@ -11,5 +11,11 @@ pipeline {
                sh 'mvn clean install -X -U'
            }
        }
+       stage('ansible_playbook'){
+            steps{
+                sh '''chmod +x ansible.yaml
+                    ansible-playbook -i /etc/ansible/inventory ansible.yaml'''
+            }
+       }   
     }
 }    
