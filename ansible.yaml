@@ -1,0 +1,7 @@
+---
+- hosts: Remote_ubuntu
+  tasks:
+    - name: copying the jar files to Remote_ubuntu
+      copy:
+        src: /var/lib/jenkins/workspace/spc-demo-ansible/target/*.war
+        dest: /home/ansible/Test-Demo
