@@ -13,7 +13,7 @@ pipeline {
        }
        stage('ansible_playbook'){
             steps{
-                sh '''chmod +x ansible.yaml
+                sh '''chmod +X ansible.yaml
                     ansible-playbook -i /etc/ansible/inventory ansible.yaml'''
             }
        }   
